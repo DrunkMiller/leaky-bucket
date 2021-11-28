@@ -13,23 +13,25 @@ public class LeakyBucket<T> {
 
     private final Consumer<T> consumer;
     private final int size;
+    private List<T> buffer;
 
-    LeakyBucket(Consumer<T> consumer, int storage, int rate, int size) {
+    LeakyBucket(Consumer<T> consumer, int storage, long rate, int size) {
         this.size = size;
         this.consumer = consumer;
-        this.queue = new ArrayBlockingQueue<T>(storage);
+        buffer = new ArrayList<>(size);
+        this.queue = new ArrayBlockingQueue<>(storage);
         this.timer = new Timer();
         timer.scheduleAtFixedRate(timerTask(), 0L, rate);
     }
 
-    private boolean push(T object) {
+    public boolean push(T object) {
         return queue.offer(object);
     }
 
     private void pop() {
-        List<T> toProcess = new ArrayList<>(size);
-        queue.drainTo(toProcess);
-        toProcess.forEach(consumer);
+        buffer.clear();
+        queue.drainTo(buffer, size);
+        buffer.forEach(consumer);
     }
 
     private TimerTask timerTask() {
